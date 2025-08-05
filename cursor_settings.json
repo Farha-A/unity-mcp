@@ -1,0 +1,44 @@
+{
+    "C_Cpp.default.compilerPath": "C:\\msys64\\mingw64\\bin\\gcc.exe",
+    "cmake.configureOnOpen": true,
+    "files.autoSave": "afterDelay",
+    "explorer.confirmDelete": false,
+    "[python]": {
+        "editor.formatOnType": true
+    },
+    "update.showReleaseNotes": false,
+    "git.confirmSync": false,
+    "git.autofetch": true,
+    "git.enableSmartCommit": true,
+    "plantuml.exportFormat": "png",
+    "plantuml.render": "PlantUMLServer",
+    "plantuml.server": "https://www.plantuml.com/plantuml",
+    "database-client.autoSync": true,
+    "workbench.colorTheme": "Cursor Dark Midnight",
+    "workbench.editorAssociations": {
+        "*.bin": "default"
+    },
+    "workbench.editor.enablePreview": false,
+    "cursor.cpp.disabledLanguages": [
+        "plaintext",
+        "markdown",
+        "scminput"
+    ],
+    "github.copilot.enable": {
+        "*": false,
+        "plaintext": false,
+        "markdown": false,
+        "scminput": false
+    },
+    "mcpServers": {
+        "UnityMCP": {
+            "command": "uv",
+            "args": [
+                "run",
+                "--directory",
+                "C:\\Users\\hp\\AppData\\Local\\Programs\\UnityMCP\\UnityMcpServer\\src",
+                "server.py"
+            ]
+        }
+    }
+} 
