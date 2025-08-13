@@ -16,10 +16,21 @@ namespace UnityMcpBridge.Editor.Tools
         /// </summary>
         public static object HandleCommand(JObject @params)
         {
-            string action = @params["action"]?.ToString().ToLower() ?? "create"; // Default action
+            if (@params == null)
+            {
+                return Response.Error("Parameters cannot be null");
+            }
+
+            string action = @params["action"]?.ToString()?.ToLower() ?? "create"; // Default action
 
             try
             {
+                // Validate that we're on the main thread for Unity operations
+                if (!Application.isPlaying && !UnityEditor.EditorApplication.isPlayingOrWillChangePlaymode)
+                {
+                    // We're in edit mode, which is fine for creating GameObjects
+                }
+
                 switch (action)
                 {
                     case "create":
@@ -51,58 +62,82 @@ namespace UnityMcpBridge.Editor.Tools
 
             try
             {
-                // Create the capsule on the main thread using delayCall for safety
-                EditorApplication.delayCall += () =>
+                // Validate color hex before proceeding
+                if (!ColorUtility.TryParseHtmlString(colorHex, out Color color))
+                {
+                    return Response.Error($"Invalid color hex: {colorHex}. Please use a valid hex color code (e.g., #FF0000).");
+                }
+
+                // Create the capsule immediately on the main thread for immediate response
+                GameObject capsule;
+                try
+                {
+                    capsule = GameObject.CreatePrimitive(PrimitiveType.Capsule);
+                    if (capsule == null)
+                    {
+                        return Response.Error("Failed to create capsule GameObject. Unity may be in an invalid state.");
+                    }
+                }
+                catch (Exception createEx)
+                {
+                    Debug.LogError($"[CreateCapsule] GameObject.CreatePrimitive failed: {createEx}");
+                    return Response.Error($"Failed to create primitive: {createEx.Message}");
+                }
+
+                // Set basic properties
+                capsule.name = name;
+                capsule.transform.position = position;
+                capsule.transform.rotation = Quaternion.Euler(rotation);
+                capsule.transform.localScale = scale;
+
+                // Handle material and color
+                Renderer renderer = capsule.GetComponent<Renderer>();
+                if (renderer != null)
                 {
                     try
                     {
-                        // Create the capsule GameObject
-                        GameObject capsule = GameObject.CreatePrimitive(PrimitiveType.Capsule);
-                        capsule.name = name;
-                        capsule.transform.position = position;
-                        capsule.transform.rotation = Quaternion.Euler(rotation);
-                        capsule.transform.localScale = scale;
-
-                        // Get the renderer and set the material color
-                        Renderer renderer = capsule.GetComponent<Renderer>();
-                        if (renderer != null)
-                        {
-                            // Create a new material instance to avoid affecting other objects
-                            Material material = new Material(renderer.sharedMaterial);
-                            
-                            // Parse hex color and apply it
-                            if (ColorUtility.TryParseHtmlString(colorHex, out Color color))
-                            {
-                                material.color = color;
-                                renderer.material = material;
-                            }
-                            else
-                            {
-                                Debug.LogWarning($"[CreateCapsule] Invalid color hex: {colorHex}. Using default color.");
-                            }
-                        }
-
-                        // Select the created object in the hierarchy
-                        Selection.activeGameObject = capsule;
-                        
-                        Debug.Log($"[CreateCapsule] Successfully created capsule '{name}' with color {colorHex}");
+                        // Create a new material instance to avoid affecting other objects
+                        Material material = new Material(renderer.sharedMaterial);
+                        material.color = color;
+                        renderer.material = material;
                     }
-                    catch (Exception delayEx)
+                    catch (Exception matEx)
                     {
-                        Debug.LogError($"[CreateCapsule] Exception during delayed creation: {delayEx}");
+                        Debug.LogWarning($"[CreateCapsule] Failed to set material color: {matEx.Message}. Using default material.");
                     }
-                };
+                }
 
-                // Report attempt immediately, as creation is delayed
+                // Select the created object in the hierarchy
+                try
+                {
+                    Selection.activeGameObject = capsule;
+                }
+                catch (Exception selEx)
+                {
+                    Debug.LogWarning($"[CreateCapsule] Failed to select object: {selEx.Message}");
+                }
+
+                Debug.Log($"[CreateCapsule] Successfully created capsule '{name}' with color {colorHex} at position {position}");
+
+                // Return success with object details
                 return Response.Success(
-                    $"Attempted to create capsule '{name}' with color {colorHex}. Check Unity logs for confirmation or errors."
+                    $"Successfully created capsule '{name}'",
+                    new
+                    {
+                        name = capsule.name,
+                        instanceID = capsule.GetInstanceID(),
+                        position = new { x = position.x, y = position.y, z = position.z },
+                        rotation = new { x = rotation.x, y = rotation.y, z = rotation.z },
+                        scale = new { x = scale.x, y = scale.y, z = scale.z },
+                        color = colorHex,
+                        message = "Capsule created successfully and selected in hierarchy"
+                    }
                 );
             }
             catch (Exception e)
             {
-                // Catch errors during setup phase
-                Debug.LogError($"[CreateCapsule] Failed to setup creation: {e}");
-                return Response.Error($"Error setting up capsule creation: {e.Message}");
+                Debug.LogError($"[CreateCapsule] Failed to create capsule: {e}");
+                return Response.Error($"Failed to create capsule: {e.Message}");
             }
         }
 

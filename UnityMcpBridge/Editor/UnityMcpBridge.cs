@@ -315,8 +315,29 @@ namespace UnityMcpBridge.Editor
                         }
                         else
                         {
-                            string responseJson = ExecuteCommand(command);
-                            tcs.SetResult(responseJson);
+                            // Add timeout protection for command execution
+                            var timeoutTask = Task.Delay(30000); // 30 second timeout
+                            var commandTask = Task.Run(() => ExecuteCommand(command));
+                            
+                            if (Task.WhenAny(commandTask, timeoutTask).Result == commandTask)
+                            {
+                                // Command completed within timeout
+                                string responseJson = commandTask.Result;
+                                tcs.SetResult(responseJson);
+                            }
+                            else
+                            {
+                                // Command timed out
+                                var timeoutResponse = new
+                                {
+                                    status = "error",
+                                    error = "Command execution timed out",
+                                    details = $"Command '{command.type}' took longer than 30 seconds to execute",
+                                    command = command.type
+                                };
+                                tcs.SetResult(JsonConvert.SerializeObject(timeoutResponse));
+                                Debug.LogError($"[UnityMcpBridge] Command '{command.type}' timed out after 30 seconds");
+                            }
                         }
                     }
                     catch (Exception ex)
@@ -418,6 +439,8 @@ namespace UnityMcpBridge.Editor
                     "read_console" => ReadConsole.HandleCommand(paramsObject),
                     "execute_menu_item" => ExecuteMenuItem.HandleCommand(paramsObject),
                     "create_capsule" => CreateCapsule.HandleCommand(paramsObject),
+                    // Also support the Handle prefix for backward compatibility
+                    "HandleCreateCapsule" => CreateCapsule.HandleCommand(paramsObject),
                     _ => throw new ArgumentException(
                         $"Unknown or unsupported command type: {command.type}"
                     ),
