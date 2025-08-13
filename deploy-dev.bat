@@ -124,13 +124,22 @@ if !errorlevel! neq 0 (
 )
 
 :: Deploy Python Server
+:: Stop running Python server processes to prevent file locks
+echo Stopping any running Unity MCP Server processes...
+taskkill /F /IM UnityMcpServer.exe > nul 2>&1
+taskkill /F /IM python.exe > nul 2>&1
+taskkill /F /IM pythonw.exe > nul 2>&1
+
+
 echo Deploying Python Server code...
-xcopy "%SERVER_SOURCE%\*" "%SERVER_PATH%\" /E /Y > nul
-if !errorlevel! neq 0 (
+robocopy "%SERVER_SOURCE%" "%SERVER_PATH%" /E /IS /IT /R:1 /W:1 /XD ".venv"
+set "RC=%ERRORLEVEL%"
+if %RC% GEQ 8 (
     echo Error: Failed to deploy Python Server code
     pause
     exit /b 1
 )
+
 
 :: Success
 echo.
