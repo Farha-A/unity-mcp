@@ -21,6 +21,7 @@ namespace MCPForUnity.Editor.Tools
             { "HandleReadConsole", ReadConsole.HandleCommand },
             { "HandleExecuteMenuItem", ExecuteMenuItem.HandleCommand },
             { "HandleManageShader", ManageShader.HandleCommand},
+            { "HandleGenerateCapsule", GenerateCapsule.HandleCommand },
         };
 
         /// <summary>
