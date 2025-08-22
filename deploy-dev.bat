@@ -2,14 +2,14 @@
 setlocal enabledelayedexpansion
 
 echo ===============================================
-echo MCP for Unity Development Deployment Script
+echo Unity MCP Development Deployment Script
 echo ===============================================
 echo.
 
 :: Configuration
 set "SCRIPT_DIR=%~dp0"
 set "BRIDGE_SOURCE=%SCRIPT_DIR%UnityMcpBridge"
-set "SERVER_SOURCE=%SCRIPT_DIR%UnityMcpBridge\UnityMcpServer~\src"
+set "SERVER_SOURCE=%SCRIPT_DIR%UnityMcpServer\src"
 set "DEFAULT_BACKUP_DIR=%USERPROFILE%\Desktop\unity-mcp-backup"
 set "DEFAULT_SERVER_PATH=%LOCALAPPDATA%\Programs\UnityMCP\UnityMcpServer\src"
 
@@ -19,7 +19,7 @@ echo.
 
 :: Package cache location
 echo Unity Package Cache Location:
-echo Example: X:\UnityProject\Library\PackageCache\com.coplaydev.unity-mcp@1.0.0
+echo Example: X:\UnityProject\Library\PackageCache\com.justinpbarnett.unity-mcp@1.0.0
 set /p "PACKAGE_CACHE_PATH=Enter Unity package cache path: "
 
 if "%PACKAGE_CACHE_PATH%"=="" (
@@ -124,13 +124,22 @@ if !errorlevel! neq 0 (
 )
 
 :: Deploy Python Server
+:: Stop running Python server processes to prevent file locks
+echo Stopping any running Unity MCP Server processes...
+taskkill /F /IM UnityMcpServer.exe > nul 2>&1
+taskkill /F /IM python.exe > nul 2>&1
+taskkill /F /IM pythonw.exe > nul 2>&1
+
+
 echo Deploying Python Server code...
-xcopy "%SERVER_SOURCE%\*" "%SERVER_PATH%\" /E /Y > nul
-if !errorlevel! neq 0 (
+robocopy "%SERVER_SOURCE%" "%SERVER_PATH%" /E /IS /IT /R:1 /W:1 /XD ".venv"
+set "RC=%ERRORLEVEL%"
+if %RC% GEQ 8 (
     echo Error: Failed to deploy Python Server code
     pause
     exit /b 1
 )
+
 
 :: Success
 echo.
